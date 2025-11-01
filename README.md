@@ -3,7 +3,7 @@
 [![Daily Report Workflow](https://github.com/<你的GitHub用户名>/dubliner-readingclub-activity/actions/workflows/daily-report.yml/badge.svg)](https://github.com/<你的GitHub用户名>/dubliner-readingclub-activity/actions)
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Automation-Daily%20at%207AM%20Dublin-orange)
+![Status](https://img.shields.io/badge/Automation-Daily%20at%201AM%20Dublin-orange)
 
 > ✨ **Dubliner ReadingClub Activity Tracker**  
 > 自动从 ClickUp 获取读书会任务数据，分析每日变化，生成 Markdown 报告，并通过 GitHub Actions 自动更新。
@@ -19,36 +19,6 @@
 | 🔍 **自动差异分析** | 比较昨天与今天的任务变化（新增、完成、状态变更、删除） |
 | 🪄 **Markdown 报告生成** | 自动生成每日摘要到 `reports/YYYY-MM-DD.md` |
 | 🚀 **自动提交结果** | 报告自动 push 回 GitHub 仓库 |
-
----
-
-## 🧭 项目结构
-
-.
-├── .github/
-│ └── workflows/
-│ └── daily-report.yml # GitHub Actions 工作流
-├── scripts/
-│ ├── fetch_tasks.py # 从 ClickUp 拉取任务列表
-│ ├── compare_tasks.py # 比较任务差异并生成报告
-├── data/ # 每日任务快照（自动生成）
-│ ├── 2025-11-01.json
-│ └── ...
-├── reports/ # 每日 Markdown 报告（自动生成）
-│ ├── 2025-11-02.md
-│ └── ...
-└── README.md
-
----
-
-## 🔑 配置 ClickUp API Token
-
-1. 登录 [ClickUp](https://app.clickup.com/)，点击右上角头像 → **Settings → Apps → Personal API Token**  
-2. 复制生成的 Token。  
-3. 在 GitHub 仓库中添加 Secret：  
-   - 打开 **Settings → Secrets and variables → Actions → New repository secret**
-   - 名称：`CLICKUP_TOKEN`
-   - 值：粘贴你的 Token
 
 ---
 
