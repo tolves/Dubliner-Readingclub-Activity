@@ -1,6 +1,8 @@
 import json
 import os
 import datetime
+from pathlib import Path
+os.chdir(Path(__file__).resolve().parent.parent)
 
 def log(msg):
     now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
