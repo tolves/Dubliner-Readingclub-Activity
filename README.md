@@ -22,36 +22,6 @@
 
 ---
 
-## 🧭 项目结构
-
-.
-├── .github/
-│ └── workflows/
-│ └── daily-report.yml # GitHub Actions 工作流
-├── scripts/
-│ ├── fetch_tasks.py # 从 ClickUp 拉取任务列表
-│ ├── compare_tasks.py # 比较任务差异并生成报告
-├── data/ # 每日任务快照（自动生成）
-│ ├── 2025-11-01.json
-│ └── ...
-├── reports/ # 每日 Markdown 报告（自动生成）
-│ ├── 2025-11-02.md
-│ └── ...
-└── README.md
-
----
-
-## 🔑 配置 ClickUp API Token
-
-1. 登录 [ClickUp](https://app.clickup.com/)，点击右上角头像 → **Settings → Apps → Personal API Token**  
-2. 复制生成的 Token。  
-3. 在 GitHub 仓库中添加 Secret：  
-   - 打开 **Settings → Secrets and variables → Actions → New repository secret**
-   - 名称：`CLICKUP_TOKEN`
-   - 值：粘贴你的 Token
-
----
-
 ## 🚀 使用方法
 
 ### 🧭 手动运行
