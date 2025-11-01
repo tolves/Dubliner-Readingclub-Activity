@@ -3,7 +3,7 @@
 [![Daily Report Workflow](https://github.com/<你的GitHub用户名>/dubliner-readingclub-activity/actions/workflows/daily-report.yml/badge.svg)](https://github.com/<你的GitHub用户名>/dubliner-readingclub-activity/actions)
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Status](https://img.shields.io/badge/Automation-Daily%20at%207AM%20Dublin-orange)
+![Status](https://img.shields.io/badge/Automation-Daily%20at%201AM%20Dublin-orange)
 
 > ✨ **Dubliner ReadingClub Activity Tracker**  
 > 自动从 ClickUp 获取读书会任务数据，分析每日变化，生成 Markdown 报告，并通过 GitHub Actions 自动更新。
