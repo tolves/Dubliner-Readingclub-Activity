@@ -48,11 +48,17 @@ def collect_reports(last_monday, this_monday):
 
 def build_prompt(week_items, last_monday, this_monday):
     header = (
-        f"请作为读书会的秘书，根据下面"
-        f"期间的每日活动报告，生成一份结构化的周报（Markdown）：\n"
-        f"- 本周亮点（要点列表）\n- 任务进展与完成率（可量化）\n- 活动/讨论摘要（按主题）\n"
-        f"- 风险/阻塞与需要协助事项\n- 下周计划与优先级\n\n"
-        f"若信息不足，请如实说明。不要杜撰。\n\n=== 以下为每日报告原文 ===\n"
+        f"你是 Dubliner ReadingClub 的记录员，请根据以下【{last_monday} ~ {this_monday - dt.timedelta(days=1)}】期间的每日活动报告，"
+        f"总结出一份周报（Markdown 格式）。\n\n"
+        f"请从以下角度撰写：\n"
+        f"- 本周读书会主要发生了哪些活动或更新。\n"
+        f"- 哪些成员最活跃（例如更新或组织活动）。\n"
+        f"- 本周主要阅读的书籍或主题方向（可以提及书名、作者、关键词）。\n"
+        f"- 若有值得延伸的主题或思考，请简单说明。\n"
+        f"- 在最后增加一个“下周推荐”部分，"
+        f"基于当前主题给出 1-3 本可延伸阅读的书籍或讨论方向建议。\n\n"
+        f"语气应自然、清晰，像读书会内部总结，不要过分文学或企业化。\n\n"
+        f"=== 以下为每日报告原文 ===\n"
     )
     body = []
     for date, content in week_items:
