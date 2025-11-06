@@ -1,54 +1,50 @@
-name: Weekly Summary (ChatGPT)
+name: Weekly Summary
 
 on:
-  schedule:
-    # 注意：GitHub Actions 的 cron 用 UTC。
-    # 冬令时（现在）都柏林=UTC，所以 02:00 Dublin == 02:00 UTC。
-    # 夏令时若要严格 02:00 Dublin，请改成 01:00 UTC。
-    - cron: "0 2 * * 1"
   workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 1'  # 每周一凌晨 2 点
 
 permissions:
-  contents: write   # 允许 push
+  contents: write
 
 jobs:
-  weekly-summary:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
 
-      - name: Install deps
-        run: pip install openai
+    - name: Install dependencies
+      run: pip install openai
 
-      - name: Set timezone to Dublin (可选)
-        run: |
-          sudo timedatectl set-timezone Europe/Dublin
+    - name: Run weekly summary script
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: python scripts/weekly_summary.py
 
-      - name: Generate weekly summary
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TZ: Europe/Dublin
-        run: |
-          python scripts/weekly_summary.py
+    # ✅ 先 push daily diffs
+    - name: Commit and Push daily reports
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add reports/
+        git commit -m "Update daily reading reports [skip ci]" || echo "No daily changes"
+        git push
 
-      - name: Commit & push weekly summary
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p weekly
-          git add weekly/
-          # 没变化就不 commit
-          if git diff --cached --quiet; then
-            echo "✅ No changes to commit."
-          else
-            WEEK=$(date +'%G-W%V')
-            git commit -m "Weekly summary: $WEEK"
-            git push
-            echo "✅ Weekly summary committed."
-          fi
+    # ✅ 再 push weekly summary
+    - name: Commit and Push weekly summary
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add weekly/
+        git commit -m "Update weekly summary [skip ci]" || echo "No weekly changes"
+        git push
