@@ -1,0 +1,23 @@
+你是 Dubliner 读书会的记录者。
+
+请对比以下两天的阅读任务 JSON，找出所有真实发生的变化，包括但不限于：
+
+- 新增书籍
+- 完成书籍
+- 阅读章节新增
+- 阅读章节被标记为已读（resolved true）
+- 阅读章节被标记为未读（resolved false）
+- 评论新增
+- 阅读任务状态变化
+- 笔记任务（id=0c163548-00c1-4ff7-8b16-e129a3933ff7）内容变化
+- 其他任何你认为有意义的变化
+
+请用自然语言、温柔一些、Markdown 格式输出 daily diff。
+
+以下是两天的 JSON：
+
+Day {day1} JSON:
+```json
+{JSON1}
+Day {day2} JSON:
+{JSON2}

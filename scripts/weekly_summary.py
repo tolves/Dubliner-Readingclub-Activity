@@ -4,90 +4,195 @@ import datetime as dt
 from pathlib import Path
 from openai import OpenAI
 
-# ✅ 强制切换到仓库根目录（与你旧脚本保持一致）
+# ==========================
+# 目录初始化
+# ==========================
 os.chdir(Path(__file__).resolve().parent.parent)
+ROOT = Path(".").resolve()
 
-# 初始化 OpenAI 客户端
+DATA_DIR = ROOT / "data"
+REPORTS_DIR = ROOT / "reports"
+WEEKLY_DIR = ROOT / "weekly"
+
 client = OpenAI()
 
-# 仓库根目录
-ROOT = Path(".").resolve()
-BASE_DIR = ROOT / "scripts"
 
+# ==========================
+# 工具函数
+# ==========================
 
 def load_json(path):
+    """加载 JSON 文件，你的 JSON 是 list 格式。"""
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+
+    if not content:
+        print(f"⚠️ 空文件跳过: {path}")
+        return None
+
+    try:
+        return json.loads(content)
+    except Exception as e:
+        print(f"⚠️ JSON 解析失败 {path}: {e}")
+        return None
+        
+def load_prompt(path):
+    """从文件读取 prompt"""
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
-
-def find_last_7_days_json():
-    """从 data/ 中读取最近 7 天 JSON"""
-    data_dir = ROOT / "data"
-
-    if not data_dir.exists():
-        raise RuntimeError("❌ data 文件夹不存在")
-
+def load_last_7_days_json():
+    """加载最近 7 天 JSON，按日期升序排序。"""
     today = dt.date.today()
-    files = {}
+    result = {}
 
     for i in range(7):
-        day = today - dt.timedelta(days=i)
-        file_path = data_dir / f"{day.isoformat()}.json"
-        if file_path.exists():
-            files[day.isoformat()] = load_json(file_path)
+        d = today - dt.timedelta(days=i)
+        fp = DATA_DIR / f"{d.isoformat()}.json"
+        if fp.exists():
+            obj = load_json(fp)
+            if obj:
+                result[d.isoformat()] = obj
 
-    return files
-
-
-def build_prompt(json_dict):
-    """构建 GPT 周报 prompt"""
-    year, week, _ = dt.date.today().isocalendar()
-
-    blocks = []
-    for date, content in sorted(json_dict.items()):
-        blocks.append(f"### {date}\n```\n{content}\n```")
-
-    all_json_blocks = "\n\n".join(blocks)
-
-    prompt = f"""
-你是 Dubliner 读书会的记录员。
-请基于下面连续7天的每日 JSON 数据，生成一份自然语言但非常详尽的周报（Markdown）。
-
-周报内容必须包含（如无则写“本周无”）：
-1. 本周总体概览
-2. 新增成员（根据 creator / assignees 中首次出现的用户名）
-3. 新增书籍（书名 + 创建者）
-4. 完成书籍（整本完成）
-5. 阅读进度总结（按书：新增章节、已读完章节、标记未读、是谁阅读的）
-6. 成员活跃度（谁最活跃、谁的推进最多）
-7. 其他值得记录的变化
-8. 下周展望（1–3 句自然语言）
-
-语气自然、温暖、非企业化，不要使用“亮点/阻塞/风险”之类词汇。
-
-最终输出 Markdown，主标题格式：
-# Dubliner读书会 · {year}-W{week} 周报
-
-以下是本周每日 JSON 数据：
-
-{all_json_blocks}
-"""
-    return prompt
+    return dict(sorted(result.items(), key=lambda x: x[0]))
 
 
-def generate_weekly_report(prompt):
-    print("⏳ 正在调用 GPT 生成周报...")
+def prepare_pairs(days_dict):
+    """将 n 天转成 n−1 个 pair：D1→D2, D2→D3 ..."""
+    keys = list(days_dict.keys())
+    pairs = []
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    for i in range(len(keys) - 1):
+        day1, day2 = keys[i], keys[i + 1]
+        pairs.append((day1, day2, days_dict[day1], days_dict[day2]))
+
+    return pairs
+
+
+# ==========================
+# GPT daily diff（稳定版：纯字符串拼接）
+# ==========================
+
+def generate_daily_diff_gpt(day1, day2, json1, json2):
+    """从外部 prompt 文件读取 daily diff 模板，并生成对比报告。"""
+
+    # 读取 prompt 模板
+    prompt_template = load_prompt(ROOT / "prompts" / "daily_diff.txt")
+
+    # 格式化 JSON
+    json1_str = json.dumps(json1, ensure_ascii=False, indent=2)
+    json2_str = json.dumps(json2, ensure_ascii=False, indent=2)
+
+    # 注入变量
+    prompt = (
+        prompt_template
+        .replace("{day1}", day1)
+        .replace("{day2}", day2)
+        .replace("{JSON1}", json1_str)
+        .replace("{JSON2}", json2_str)
+    )
+
+    resp = client.chat.completions.create(
+        model="gpt-4.1-mini",
         messages=[
-            {"role": "system", "content": "你是擅长阅读进度总结的读书会记录者。"},
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": "你擅长分析 JSON 差异并用自然语言总结。"},
+            {"role": "user", "content": prompt},
         ]
     )
 
-    return response.choices[0].message["content"]
+    return resp.choices[0].message.content
 
+
+# ==========================
+# GPT weekly summary（同样稳定版）
+# ==========================
+
+
+
+def generate_weekly_report_gpt(daily_diffs):
+    """从 prompt 文件加载模板，并生成周报（采用稳定字符串拼接）"""
+
+    year, week, _ = dt.date.today().isocalendar()
+
+    # 合并 daily diff 文本
+    merged = ""
+    for d in daily_diffs:
+        merged += f"## {d['from']} → {d['to']}\n\n"
+        merged += d["diff"] + "\n\n"
+
+    # 加载外部 prompt
+    prompt_template = load_prompt(ROOT / "prompts" / "weekly_summary.txt")
+
+    # 注入变量
+    prompt = (
+        prompt_template
+        .replace("{DAILY_DIFFS}", merged)
+        .replace("{year}", str(year))
+        .replace("{week}", str(week))
+    )
+
+    resp = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[
+            {"role": "system", "content": "你擅长写自然语言的周报总结。"},
+            {"role": "user", "content": prompt},
+        ]
+    )
+
+    return resp.choices[0].message.content
+
+
+# ==========================
+# 主流程
+# ==========================
 
 def main():
-    print("📚 正在扫描最近 7 天 JSON...")
+    print("📚 正在加载最近 7 天 JSON ...")
+
+    days = load_last_7_days_json()
+    if len(days) < 2:
+        print("❌ JSON 数量不足，无法生成报告")
+        return
+
+    print("✅ 找到天数：", list(days.keys()))
+    pairs = prepare_pairs(days)
+
+    daily_diffs = []
+
+    # ----- 逐日 diff -----
+    for day1, day2, j1, j2 in pairs:
+        print(f"🔍 正在生成 daily diff: {day1} → {day2} ...")
+
+        diff_text = generate_daily_diff_gpt(day1, day2, j1, j2)
+
+        daily_diffs.append({
+            "from": day1,
+            "to": day2,
+            "diff": diff_text
+        })
+
+        # 保存 daily 文件
+        REPORTS_DIR.mkdir(exist_ok=True)
+        out = REPORTS_DIR / f"{day2}_daily_report.md"
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(f"# {day1} → {day2} 每日阅读变化\n\n")
+            f.write(diff_text)
+
+        print(f"✅ 已保存 {out}")
+
+    # ----- 周报 -----
+    print("📝 正在生成周报 ...")
+    weekly_text = generate_weekly_report_gpt(daily_diffs)
+
+    WEEKLY_DIR.mkdir(exist_ok=True)
+    year, week, _ = dt.date.today().isocalendar()
+    weekly_path = WEEKLY_DIR / f"{year}-W{week}.md"
+
+    with open(weekly_path, "w", encoding="utf-8") as f:
+        f.write(weekly_text)
+
+    print(f"✅ 周报已生成: {weekly_path}")
+
+
+if __name__ == "__main__":
+    main()
